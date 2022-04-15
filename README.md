@@ -48,7 +48,7 @@ adds a unit using the Parallel.js. the processing speed is accelerated by dividi
 
 ```javascript
 async function sumParallel() {
-  let par = new Parallel(pixels.slice());
+  let par = new Parallel(pixels);
   let res = par.map((e) => e + 1);
   return res.data;
 }
