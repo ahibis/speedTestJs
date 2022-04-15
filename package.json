@@ -1,0 +1,15 @@
+{
+  "name": "speedTestJs",
+  "version": "0.1.0",
+  "description": "the project for measure computed time of operations of huge arrays",
+  "main": "main.js",
+  "author": "ahibis<pokesteve31@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^18.0.4",
+    "paralleljs": "^1.1.0"
+  }
+}

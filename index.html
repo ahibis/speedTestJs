@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./gpu-browser.min.js"></script>
+    <script src="./parallel.js"></script>
+    <script>
+      if(window.require){
+        Parallel = require('paralleljs')
+      }
+    </script>
+
+  </head>
+  <body>
+    <script >
+      const cpu = new GPU({ mode: 'cpu' });
+      const Canvas = document.createElement("canvas")
+      Canvas.width = 640
+      Canvas.height = 640;
+      Canvas.style.width = 640;
+      
+
+      const gl = Canvas.getContext('webgl2', { premultipliedAlpha: false });
+      const gpu = new GPU({
+        canvas:Canvas,
+        context: gl
+      });
+      function loadImg(src) {
+        return new Promise((resolve, reject) => {
+          let img = new Image();
+          img.src = src;
+          img.onload = (data) => {
+            resolve(img);
+          };
+        });
+      }
+      let img,canvas,pixels;
+      async function timer(func,...args){
+        let t1=(new Date()).getTime();
+        let res = await func(...args);
+        let t2=(new Date()).getTime();
+        let dt = t2-t1;
+        let name = func.name;
+        console.log(`the program ${name} computed: ${dt}ms`)
+        return {t1,t2,dt,res,name}
+      }
+      async function loadPixels() {
+        img = await loadImg("cat1.jpg")
+        let {width:w,height:h} = img;
+        canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img,0,0,w,h);
+        pixels = await ctx.getImageData(0, 0, w, h).data;
+      }
+      async function sumMap(){
+        return pixels.map(e=>e+1)
+      }
+      async function sumFor(){
+        let {length} = pixels;
+        let res = new Uint8ClampedArray(length)
+        for(let i=0;i<length;i++){
+          res[i] = pixels[i]
+        }
+        return res
+      }
+      async function sumParallel(){
+        let par = new Parallel(pixels.slice());
+        let res = par.map(e=>e+1)
+        return res.data
+      }
+      const gpuSum = new GPU();
+      let Sum;
+      function sumKernalCreate(){
+        let {length} = pixels;
+        Sum = gpuSum.createKernel(function (arr){
+          return arr[this.thread.x]+1
+        },{ output: [length], graphical: false})
+      }
+      async function sumGpu(){
+        return Sum(pixels)
+      }
+      let SumImage;
+      function sumImageKernalCreate(){
+        let {length} = pixels;
+        let {width:w,height:h} = img;
+        
+        SumImage = gpu.createKernel(function (image){
+          const pixel = image[this.thread.y][this.thread.x];
+          this.color(pixel[0],pixel[1],pixel[2],pixel[3])
+        },{ output: [w,h], graphical: true})
+        document.body.appendChild(gpu.canvas)
+      }
+      async function sumImgGpu(){
+        return SumImage(img)
+      }
+      async function sumWorkers(){
+        let {length} = pixels;
+        let buf = new Uint8ClampedArray(length)
+        let process = async (workersCount,start)=>{
+          for(let i=start;i<length;i+=workersCount){
+            buf[i] = pixels[i]+1
+          }
+        }
+        let workers =[];
+        let count = 32;
+        for(let i=0;i<count;i++)
+          workers.push(process(count,i))
+        await Promise.all(workers)
+        return buf
+      }
+      async function mainSum(){
+        console.group("sum");
+        await timer(loadPixels);
+        await timer(sumMap)
+        await timer(sumFor)
+        await timer(sumParallel)
+        await timer(sumParallel)
+        sumKernalCreate()
+        await timer(sumGpu)
+        await timer(sumGpu)
+        await timer(sumGpu)
+        sumImageKernalCreate()
+        await timer(sumImgGpu)
+        await timer(sumImgGpu)
+        await timer(sumImgGpu)
+        await timer(sumWorkers)
+        await timer(sumWorkers)
+        console.groupEnd()
+      }
+      
+      async function alphaMap(){
+        return pixels.map((e,i)=>{
+          if(i%4==0) return  0;
+          return e*2;
+        })
+      }
+      async function alphaFor(){
+        let {length} = pixels;
+        let buf = new Uint8ClampedArray(length)
+        for(let i=0;i<length;i++){
+          if(i%4!=0)
+            buf[i] = pixels[i]*2
+        }
+        return buf
+      }
+      async function alphaParallel(){
+        let par = new Parallel(pixels.slice());
+        let res = par.map((e,i)=>{
+          if(i%4==0) return  0;
+          return e*2;
+        })
+        return res.data
+      }
+      let Alpha;
+      async function alphaGPU(){
+        return Alpha(pixels)
+      }
+      async function alphaWorkers(){
+        let {length} = pixels;
+        let buf = new Uint8ClampedArray(length)
+        let process = async (workersCount,start)=>{
+          for(let i=start;i<length;i+=workersCount){
+            if(i%4!=0)
+              buf[i] = pixels[i]*2
+          }
+        }
+        let workers =[];
+        let count = 32;
+        for(let i=0;i<count;i++)
+          workers.push(process(count,i))
+        await Promise.all(workers)
+        return buf
+      }
+      async function mainAlpha(){
+        console.group("alpha");
+        await timer(loadPixels);
+        await timer(alphaMap)
+        await timer(alphaFor)
+        await timer(alphaParallel)
+        await timer(alphaParallel)
+        let {length} = pixels;
+        Alpha = gpuSum.createKernel(function (arr){
+          if(this.thread.x%4==0)
+            return 0;
+          return arr[this.thread.x]*2
+        }).setOutput([length]).setGraphical(false)
+        await timer(alphaGPU)
+        await timer(alphaGPU)
+        await timer(alphaGPU)
+        await timer(alphaWorkers)
+        await timer(alphaWorkers)
+        console.groupEnd("alpha")
+      }
+      async function main(){
+        await timer(mainSum);
+        await timer(mainAlpha);
+      }
+      main();
+    </script>
+  </body>
+</html>
