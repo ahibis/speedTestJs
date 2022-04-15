@@ -47,13 +47,10 @@ async function sumFor() {
 adds a unit using the Parallel.js. the processing speed is accelerated by dividing the task into threads in the node.js (using worker_threads) and splitting into working web processes on web js.
 
 ```javascript
-async function sumFor() {
-  let { length } = pixels;
-  let res = new Uint8ClampedArray(length);
-  for (let i = 0; i < length; i++) {
-    res[i] = pixels[i];
-  }
-  return res;
+async function sumParallel() {
+  let par = new Parallel(pixels.slice());
+  let res = par.map((e) => e + 1);
+  return res.data;
 }
 ```
 
@@ -100,6 +97,7 @@ async function sumImgGpu() {
   return SumImage(img);
 }
 ```
+
 ## 6. sumWorkers()
 
 splits the task into a number of asynchronous functions (in this case 32), which can speed up the process when performing large tasks.
@@ -120,18 +118,19 @@ async function sumWorkers() {
   return buf;
 }
 ```
+
 # alpha function
 
 the task is to multiply each color of 2 and to make alpha chanel as 0;
 ![sum](github/alpha.png)
 
 to solve this problem , 5 functions were written
+
 1. alphaMap
 2. alphaFor
 3. alphaParallel
 4. alphaGPU
 5. alphaWorkers
-
 
 ## used technologies
 
