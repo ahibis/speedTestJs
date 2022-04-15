@@ -12,6 +12,7 @@
 # sum function
 
 the task is to add 1 image to each pixel color.
+
 ![sum](github/sum.png)
 
 to solve this problem , 6 functions were written
