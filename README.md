@@ -15,7 +15,7 @@ the task is to add 1 image to each pixel color.
 
 ![sum](github/sum.png)
 
-to solve this problem , 6 functions were written
+to solve this problem , 7 functions were written
 
 ## 1. sumMap (the worst method)
 
@@ -36,7 +36,7 @@ async function sumFor() {
   let { length } = pixels;
   let res = new Uint8ClampedArray(length);
   for (let i = 0; i < length; i++) {
-    res[i] = pixels[i];
+    res[i] = pixels[i] + 1;
   }
   return res;
 }
@@ -119,21 +119,32 @@ async function sumWorkers() {
 }
 ```
 
+## 7. sumLodash
+
+adds a unit using the lodash.js.
+
+```javascript
+async function sumLodash() {
+  return _.map(pixels, (e) => e + 1);
+}
+```
+
 # alpha function
 
 the task is to multiply each color of 2 and to make alpha chanel as 0;
 ![sum](github/alpha.png)
 
-to solve this problem , 5 functions were written
+to solve this problem , 6 functions were written
 
 1. alphaMap
 2. alphaFor
 3. alphaParallel
 4. alphaGPU
 5. alphaWorkers
-
+6. alphaLodash
 ## used technologies
 
 - electron.js
 - parallel.js
-- gpu.js
+- GPU.js
+- lodash.js
